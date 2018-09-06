@@ -14,6 +14,7 @@ from www.apis import APIValueError, APIError, APIPermissionError, Page
 from www.config_default import configs
 from www.coroweb import get, post
 from www.model import User, Blog, next_id,Comment
+from www.user_email import send_user_email
 
 COOKIE_NAME='awesession'
 _COOKIE_KEY=configs['session']['secret']
@@ -206,18 +207,47 @@ async def api_register_users(*, email, name, passwd):
     users = await User.findall('email', [email])
     if len(users) > 0:
         raise APIError('register:failed', 'email', 'Email is already in use')
+    send_user_email(email,name,passwd)
+    return dict(r='yes')
+    #
+    # uid = next_id()
+    # sha1_passwd = '%s:%s' % (uid, passwd)
+    # user = User(id=uid, name=name.strip(), email=email, passwd=hashlib.sha1(sha1_passwd.encode('utf-8')).hexdigest(),
+    #             image='http://www.gravatar.com/avatar/%s?d=mm&s=120' % hashlib.md5(email.encode('utf-8')).hexdigest())
+    # await user.save()
+    # # make session cookie
+    # r = web.Response()
+    # r.set_cookie(COOKIE_NAME, user2cookie(user, 86400), max_age=86400, httponly=True)
+    # user.passwd = '******'
+    # r.content_type = 'application/json'
+    # r.body = json.dumps(user,ensure_ascii=False).encode('utf-8')
+    # return r
+
+@get('/api/user_yes')
+async def user_yes(request,* ,name, em, mm, t):
+    '''
+    邮箱验证注册
+    :param request:
+    :param name:
+    :param em:
+    :param mm:
+    :return:
+    '''
+    if float(time.time())-float(t)>1800:
+        return 'redirect:/'
     uid = next_id()
-    sha1_passwd = '%s:%s' % (uid, passwd)
-    user = User(id=uid, name=name.strip(), email=email, passwd=hashlib.sha1(sha1_passwd.encode('utf-8')).hexdigest(),
-                image='http://www.gravatar.com/avatar/%s?d=mm&s=120' % hashlib.md5(email.encode('utf-8')).hexdigest())
+    sha1_passwd = '%s:%s' % (uid, mm)
+    user = User(id=uid, name=name.strip(), email=em, passwd=hashlib.sha1(sha1_passwd.encode('utf-8')).hexdigest(),
+                image='http://www.gravatar.com/avatar/%s?d=mm&s=120' % hashlib.md5(em.encode('utf-8')).hexdigest())
     await user.save()
     # make session cookie
     r = web.Response()
     r.set_cookie(COOKIE_NAME, user2cookie(user, 86400), max_age=86400, httponly=True)
     user.passwd = '******'
     r.content_type = 'application/json'
-    r.body = json.dumps(user,ensure_ascii=False).encode('utf-8')
-    return r
+    r.body = json.dumps(user, ensure_ascii=False).encode('utf-8')
+    return 'redirect:/'
+
 
 @get('/api/users')
 async def api_users(*, page='1'):

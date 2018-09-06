@@ -36,12 +36,11 @@ $(function () {
                     name: this.name.trim(),
                     email: email,
                     passwd: CryptoJS.SHA1(email + ':' + this.password1).toString()
-                }, function (err) {
-                    console.log(err)
+                }, function (err,r) {
                     if (err) {
                         return $form.showFormError(err);
                     }
-                    return location.assign('/');
+                    return location.assign('/signin');
                 });
             }
         }
